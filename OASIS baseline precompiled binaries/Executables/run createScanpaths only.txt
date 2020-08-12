@@ -1,0 +1,3 @@
+Use createScanpaths.exe for both layer and scan generation.  It will prompt you to select a configuration file (version 3 only) in whatever folder you like.  The STL files used by that project must be in the same folder as its config file
+
+The other two executables (genLayer and genScan) are helper functions called by createScanpaths

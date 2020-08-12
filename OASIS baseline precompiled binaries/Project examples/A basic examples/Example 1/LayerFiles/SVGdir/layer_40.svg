@@ -1,0 +1,29 @@
+<?xml version="1.0" standalone="no" ?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="2000px" height="2000px" xmlns="http://www.w3.org/2000/svg" version="1.1" >
+	<line x1="352.898" y1="1772.1" x2="150" y2="1772.1" stroke-width="1" stroke="rgb(0,0,0)" />
+	<line x1="150" y1="1772.1" x2="150" y2="1975" stroke-width="1" stroke="rgb(0,0,0)" />
+	<line x1="150" y1="1975" x2="352.898" y2="1975" stroke-width="1" stroke="rgb(0,0,0)" />
+	<line x1="352.898" y1="1975" x2="352.898" y2="1772.1" stroke-width="1" stroke="rgb(0,0,0)" />
+	<line x1="229.28" y1="1919.81" x2="216.185" y2="1912.25" stroke-width="1" stroke="rgb(0,0,255)" />
+	<line x1="216.185" y1="1912.25" x2="205.901" y2="1901.17" stroke-width="1" stroke="rgb(0,0,255)" />
+	<line x1="205.901" y1="1901.17" x2="199.34" y2="1887.54" stroke-width="1" stroke="rgb(0,0,255)" />
+	<line x1="199.34" y1="1887.54" x2="197.087" y2="1872.59" stroke-width="1" stroke="rgb(0,0,255)" />
+	<line x1="197.087" y1="1872.59" x2="199.341" y2="1857.64" stroke-width="1" stroke="rgb(0,0,255)" />
+	<line x1="199.341" y1="1857.64" x2="205.901" y2="1844.02" stroke-width="1" stroke="rgb(0,0,255)" />
+	<line x1="205.901" y1="1844.02" x2="216.186" y2="1832.94" stroke-width="1" stroke="rgb(0,0,255)" />
+	<line x1="216.186" y1="1832.94" x2="229.28" y2="1825.38" stroke-width="1" stroke="rgb(0,0,255)" />
+	<line x1="229.28" y1="1825.38" x2="244.021" y2="1822.01" stroke-width="1" stroke="rgb(0,0,255)" />
+	<line x1="244.021" y1="1822.01" x2="259.099" y2="1823.14" stroke-width="1" stroke="rgb(0,0,255)" />
+	<line x1="259.099" y1="1823.14" x2="273.175" y2="1828.67" stroke-width="1" stroke="rgb(0,0,255)" />
+	<line x1="273.175" y1="1828.67" x2="284.995" y2="1838.09" stroke-width="1" stroke="rgb(0,0,255)" />
+	<line x1="284.995" y1="1838.09" x2="293.513" y2="1850.59" stroke-width="1" stroke="rgb(0,0,255)" />
+	<line x1="293.513" y1="1850.59" x2="297.97" y2="1865.03" stroke-width="1" stroke="rgb(0,0,255)" />
+	<line x1="297.97" y1="1865.03" x2="297.97" y2="1880.15" stroke-width="1" stroke="rgb(0,0,255)" />
+	<line x1="297.97" y1="1880.15" x2="293.513" y2="1894.6" stroke-width="1" stroke="rgb(0,0,255)" />
+	<line x1="293.513" y1="1894.6" x2="284.996" y2="1907.09" stroke-width="1" stroke="rgb(0,0,255)" />
+	<line x1="284.996" y1="1907.09" x2="273.174" y2="1916.52" stroke-width="1" stroke="rgb(0,0,255)" />
+	<line x1="273.174" y1="1916.52" x2="259.099" y2="1922.05" stroke-width="1" stroke="rgb(0,0,255)" />
+	<line x1="259.099" y1="1922.05" x2="244.021" y2="1923.18" stroke-width="1" stroke="rgb(0,0,255)" />
+	<line x1="244.021" y1="1923.18" x2="229.28" y2="1919.81" stroke-width="1" stroke="rgb(0,0,255)" />
+</svg>

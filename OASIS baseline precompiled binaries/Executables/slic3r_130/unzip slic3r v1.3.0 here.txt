@@ -1,0 +1,5 @@
+To use the layer-generation code, you must download the version 1.3.0 of slic3r (for 64-bit Windows) from www.slic3r.org
+
+The Slic3r package is too large to upload to GitHub, and is also outside of the AmericaMakes open-source licence
+
+Unzip the entire package into this directory so that slic3r-console.exe is on the same level as this text file.  There should be thirteen files and four subfolders unzipped
