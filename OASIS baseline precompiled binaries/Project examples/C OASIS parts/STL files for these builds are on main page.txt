@@ -1,4 +1,3 @@
-The two Excel configuration files here reference a number of STL files which are located in a zip file on the main OASIS GitHub page,
-https://github.com/AmericaMakes/OASIS-Challenge-Baseline-Code-and-Models
+The two Excel configuration files (.xls) here reference a number of STL files in the same folder.  These config and STL files are also located in a zip file on the main OASIS GitHub page, https://github.com/AmericaMakes/OASIS-Challenge-Baseline-Code-and-Models
 
 To run these builds using the baseline code, unzip the STL files and place them in the same folder as these Excel config files, then run createScanpaths.exe (after also downloading Slic3r) per the Quickstart guide
