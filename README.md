@@ -9,6 +9,7 @@ Each of the four examples applies a single scan strategy to each part, per the R
 OASIS baseline source code contains code for layer and scan file generation which performs all functions except for STL-file slicing (as handled by a call to slic3r.exe).  See the documentation folder within the source folder for more information on the code, its intent, capabilities and limitations
 
 What to do...
+
 1.) Clone or download the files in this repository.
 2.) Thoroughly review the OASIS Challenge Documentation_202000821.pdf.
 3.) Thoroughly review all the documentation contained within the file folders.
