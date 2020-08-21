@@ -10,6 +10,6 @@ OASIS baseline source code contains code for layer and scan file generation whic
 
 What to do...
 1.) Clone or download the files in this repository.
-2.) Thoroughly review the OASIS Challenge Documentation_202000821.docx.
+2.) Thoroughly review the OASIS Challenge Documentation_202000821.pdf.
 3.) Thoroughly review all the documentation contained within the file folders.
 4.) Happy Coding!!
