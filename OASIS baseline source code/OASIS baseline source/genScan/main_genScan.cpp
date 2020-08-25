@@ -22,9 +22,9 @@ from the configuration files.
 //============================================================*/
 
 #define printTraj 0
-// If printTraj set to 1, the regions of each trajectory will be identified
-// and printed to console as they are added and ordered.  
+// If printTraj set to 1, the regions of each trajectory will printed to console as they are added from the layer file
 // Normally set printTraj to 0
+// This complements printTrajectories found in writeScanXML.h, which calls out trajectories as they are processed
 
 
 #include <fstream>
@@ -54,6 +54,11 @@ constexpr auto XMLTARGET = 0;
 IXMLDOMDocument *pXMLDomLayer = NULL;
 IXMLDOMDocument *pXMLDomScan = NULL; 
 
+// function to compare two trajectories and determine which has the lower number, and should be printed first
+bool compareTrajNums(const trajectory &a, const trajectory &b)
+{
+	return a.trajectoryNum < b.trajectoryNum;
+}
 
 // function to clear the large variables re-used in each layer iteration
 void clearVars(layer* L, trajectory* T, path* tempPath)
@@ -92,7 +97,25 @@ int main(int argc, char **argv)
 	// it reads the last layer number generated from a *cfg file, generates a specific number of layers, and write the 
 	// final layer number in the *cfg file for next time (or write if it is finished).
 
-	// 1. Parse the command-line arguments to identify the configuration filename and path
+	// Determine where we are (current path)
+	TCHAR filePath[MAX_PATH + 1] = "";
+	GetCurrentDirectory(MAX_PATH, filePath);
+	string currentPath = &filePath[0];
+
+	double a_min = 0.0;
+	double a_max = 0.0;
+	double hatchAngle;
+	ofstream stfile;
+	AMconfig configData;
+	errorCheckStructure errorData;  // holds results of any errors encountered
+	string errorMsg;
+	double fullHatchOffset;
+	// Define variables re-used in each layer iteration
+	layer L;
+	trajectory T;
+	path tempPath;
+
+	// Begin by parsing the command-line arguments, if any.
 	// argc indicates the number of command-line arguments entered by the user
 	string configFilename = "";
 	if (argc > 1)
@@ -107,30 +130,11 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	// define variables
-	double a_min = 0.0;
-	double a_max = 0.0;
-	double hatchAngle;
-	ofstream stfile;
-	AMconfig configData;
-	errorCheckStructure errorData;  // holds results of any errors encountered
-	string errorMsg;
-	double fullHatchOffset;
-	// Define variables re-used in each layer iteration
-	layer L;
-	trajectory T;
-	path tempPath;
-	// Determine where we are (current path)
-	TCHAR filePath[MAX_PATH + 1] = "";
-	GetCurrentDirectory(MAX_PATH, filePath);
-	string currentPath = &filePath[0];
-
-	// 2. Read the configuration file
 	configData = AMconfigRead(configFilename);  // if file can't be read or is invalid, AMconfigRead will halt execution
 	configData.executableFolder = currentPath;  // assume we begin in the executable folder, slic3r folder is located
 
-	// 3. Determine which layers to process in this function call
-	//	3a. Get total layers to process from the Excel configuration file and compare to contents of layer output folder
+	// Determine which layers to process in this function call
+	// First, get total layers to process from the Excel configuration file
 	string xmlFolder = configData.layerOutputFolder + "\\XMLdir\\";
 	fileCount layerFileInfo = countLayerFiles(xmlFolder);	// provides number of XML files and min/max layer numbers
 	
@@ -143,11 +147,12 @@ int main(int argc, char **argv)
 	if (configData.endingScanLayer < 1)	// if user sets ending layer to -1, we use actual max layer# as ending layer#
 		configData.endingScanLayer = layerFileInfo.maxLayer;
 	//
-	//	3b. Read the temporary config file to see which layers have already been done
+	// Next, read the temporary config file to see which layers have already been done
 	int finished = 0; // flag to write if slicing of the part is complete.  Set to zero by default
 	sts cst = readStatus("gs_sts.cfg"); // read the ending layer number of the last iteration (or check if it is the first layer)
 	int started = cst.started; // flag to check if slicing of the part has already started
-	//	Identify the specified starting and ending layers, and compare to available layer files
+	//
+	// determine the starting layer
 	int sLayer = cst.lastLayer +1; // lastLayer will have been intialized to 0 if no prior cfg file
 	if (sLayer < configData.startingScanLayer)	// check if user wants to start other than at lowest layer
 	{
@@ -169,7 +174,7 @@ int main(int argc, char **argv)
 		errorMsg = "The ending layer# indicated in the config file (" + to_string(configData.endingScanLayer) + ") is below the lowest layer file in this folder (" + to_string(layerFileInfo.minLayer) + ")\n";
 		updateErrorResults(errorData, true, "genScan", errorMsg, "", configData.configFilename, configData.configPath);
 	}
-	//
+	
 	// determine the final layer (fLayer) to be processed by this instance of genScan
 	int fLayer = sLayer + numLayersPerCall;	// final layer number for a particular call to this function
 	if (fLayer >= configData.endingScanLayer)
@@ -188,7 +193,7 @@ int main(int argc, char **argv)
 	string cmd;
 	double currentContourOffset = 0.0; // used to compute offset from part + inter-contour spacing for individual contours
 
-	// 4. Load SVG viewer parameters from vConfig.txt, which should have been created by genLayer
+	//get viewer parameters
 	string vmd = "copy \"" + configData.layerOutputFolder + "\\vConfig.txt\"> NUL";
 	system(vmd.c_str());
 	ifstream vfile("vConfig.txt");
@@ -199,8 +204,7 @@ int main(int argc, char **argv)
 	istringstream ss(line);
 	ss >> mag >> c >> xo >> c >> yo;
 
-	// 5. Generate a list of all region profile tags listed in the config file, 
-	// to enable indexing from a region's tag to a specific profile in regionProfileList
+	// Generate a list of region profile tags, to enable indexing from a region's tag to a specific profile in regionProfileList
 	vector<string> tagList;
 	for (int r = 0; r < configData.regionProfileList.size(); r++)
 	{	tagList.push_back(configData.regionProfileList[r].Tag);	}
@@ -213,7 +217,7 @@ int main(int argc, char **argv)
 	cursorPosition = GetConsoleCursorPosition(hStdout);
 
 	//********************************************
-	// 6. PROCESS THE INDICATED LAYERS for this genScan instance, from sLayer (starting) to fLayer (ending) layer#
+	// PROCESS SOME LAYERS
 	for (int i = sLayer; i <= fLayer; i++)
 	{
 		cout << "Processing layer " << i << " of " << layerFileInfo.maxLayer << endl;
@@ -232,12 +236,11 @@ int main(int argc, char **argv)
 		string svfn = "scan_" + zs + to_string(i) + ".svg";
 		string xfn = "scan_" + zs + to_string(i) + ".xml";
 
-		// 6a. Initialize the Domain Object Model (DOM) from msxml6.h; if this fails, we can't create an XML
-		HRESULT hr = CoInitialize(NULL);
+		HRESULT hr = CoInitialize(NULL);  // attempt to set up the output Domain Object Model (DOM).  If this fails, we can't create XML
 		int bCont = 1;
 		if (SUCCEEDED(hr))
 		{
-			// 6b. Read the appropriate XML layer file created by genLayer.  This combined all parts into one file
+			//read the appropriate XML layer file
 			wstring wfn(fullLayerPath.begin(), fullLayerPath.end());
 			LPCWSTR  wszValue = wfn.c_str();
 			int fn_err = loadDOM(wszValue);
@@ -250,66 +253,47 @@ int main(int argc, char **argv)
 			}			
 			if (bCont)
 			{
-				// 6c. Convert the layer XML data to appropriate data structure in variable layer L via traverseDOM(), then
-				// run verifyLayerStructure() to confirm that all region tags appearing in the layer file are listed in the configuration file
+				// convert the data in xml file to appropriate data structure
 				L = traverseDOM();
 				int verifyResult = verifyLayerStructure(configData, fullLayerPath, L, tagList);  // check that the layer is valid.  If not, function will end genScan execution
-				
-				// 6d. Determine the bounding box of the current layer, which will be used to define the x/y span of the hatching grid
+				// determine the bounding box of the layer
 				vector<vertex> BB;
 				BB = getBB(L);
 
-				// 6e. Identify the set of trajectory numbers encountered in the Layer file, and the set of regions that make up each trajectory.
-				// Each region (inner/outer contour) in the layer file has a region tag, hatch trajectory# and contour trajectory#.
-				// Regions will be built in trajectory# order (lowest first).  Regions with the same trajectory# will be contoured or hatched together, 
-				// and grouped by region tag into individual Paths within that trajectory.  Specifying separate contour and hatch trajectory#'s for
-				// region allows contours and hatches of the region or part to be built in a specific order.
-				//
-				// Note - this step only identifies and populates trajectory and region lists; scan path creation happens later
-				//
-				// Assemble a vector of trajectories in the order they appear in the layer file
-				// The trajectory structure contains placeholders for the paths (hatches and contours) to be created
+				// Identify the set of trajectory numbers encountered in the Layer file, and
+				// the regions which fall under each trajectory.  This step only populates the region numbers, 
+				// and does not actually create the scan paths within each trajectory
 				vector<trajectory> trajectoryList;
 				trajectoryList = identifyTrajectories(configData, L, i);
-				//
-				// Generate a list of trajectory numbers
-				// trajIndex lists them in order of appearance in layer file (as per trajectoryList), which trajIndex_sorted lists from lowest to highest
-				vector<int> trajIndex, trajIndex_sorted;
+				// Sort the trajectory list by trajectoryNum
+				sort(trajectoryList.begin(), trajectoryList.end(), compareTrajNums);
+				
+				// Create a list of the existing trajectory numbers
+				vector<int> trajIndex;
 				for (vector<trajectory>::iterator itl = trajectoryList.begin(); itl != trajectoryList.end(); ++itl)
 				{
 					trajIndex.push_back((*itl).trajectoryNum);	// This creates a list of trajectories, but not in numerical order
 					#if printTraj
-						cout << "Identified from Layer file: (unsorted) trajectory " << (*itl).trajectoryNum << endl;
+						cout << "Identified from Layer file: trajectory " << (*itl).trajectoryNum << endl;
 					#endif
 				}
 				#if printTraj
 					cout << "Size of trajectoryList: " << trajectoryList.size() << endl;
 				#endif
-				// Sort the trajectory list by trajectoryNum
-				trajIndex_sorted = trajIndex;
-				sort(trajIndex_sorted.begin(), trajIndex_sorted.end());	// Order from smallest to largest value
+
 				// Iterate across the list of trajectories in trajList and generate scan paths for their regions
-				int numTrajectories = trajIndex_sorted.size();
-				#if printTraj
-					cout << "Identified a total of " << numTrajectories << " trajectories in Layer file " << i << endl;
-				#endif
-
-				// 6f. Iterate across the trajectories in the layer file in numerical order (lowest trajectory# first) and create
-				// hatches and contours based on the regions within each trajectory
-				for (int temp1 = 0; temp1 != numTrajectories; ++temp1)
-				{	// temp1 iterates across trajIndex_sorted
-
-					// 6f(i). Cross-index back to trajectoryList (which contains the actual region data), which is order by appearance in the layer file, not trajectory#
-					int tNum = trajIndex_sorted[temp1];	// tNum is an index to the unsorted trajectory list (in order of appearance in the layer file)
-					// Determine the trajectory that tNum refers to in terms of its position in trajectoryList
-					vector<int>::iterator temp2 = find(trajIndex.begin(), trajIndex.end(), tNum);
-					int tNum_position = distance(trajIndex.begin(), temp2);	// integer position of the current trajectory within trajectoryList
-
-					int numRegions = trajectoryList[tNum_position].trajRegions.size();  // Number of regions within this trajectory
+				int numTrajectories = trajIndex.size();
+				for (int tNum = 0; tNum != numTrajectories; ++tNum)
+				{	
+					// Iterate across the regions in trajectoryList[tNum].trajRegions.
+					// First check if the region's isHatched == TRUE.  If so, ignore this region.
+					// Otherwise, compare the region's tag against all other regions in this trajectory (of same hatch/contour type) to 
+					// generate a list of regions to be grouped under a single path.  Pass this list of region numbers to
+					// the hatching or contouring function and also mark these regions isHatched = TRUE.
+					int numRegions = trajectoryList[tNum].trajRegions.size();  // Number of regions within this trajectory
 					#if printTraj
-						cout << "Processing trajectory " << tNum << " in position " << tNum_position << endl;
-						cout << "	This trajectory is in position " << tNum_position << " in trajectoryList" << endl;
-						cout << "	and contains " << numRegions << " regions" << endl;
+						cout << "Processing trajectory " << trajectoryList[tNum].trajectoryNum << " in position " << tNum << endl;
+						cout << "	This trajectory contains " << numRegions << " regions" << endl;
 					#endif
 					int regionIndex, rProfileNum;
 					string regionType, regionTag;
@@ -317,35 +301,28 @@ int main(int argc, char **argv)
 					regionProfile* rProfile;
 					vector<int> regionsWithinPath;  // list of regions to be hatched or contoured together (same trajectory, tag and type)
 
-					// 6f(ii). Iterate across the regions in trajectoryList[tNum_position].trajRegions.
-					// First check if the region's isHatched == TRUE.  If so, ignore this region.
-					// Otherwise, compare the region's tag against all other regions in this trajectory (of same hatch/contour type) to 
-					// generate a list of regions to be grouped under a single path.  Pass this list of region numbers to
-					// the hatching or contouring function and also mark these regions isHatched = TRUE.
 					for (int rNum = 0; rNum != numRegions; ++rNum)
 					{
 						#if printTraj
 							cout << "	  Evaluating region number " << rNum << endl;
 						#endif
-						// 6f(ii)1. check whether this region has already been hatched - as may have happened if
-						// its tag was identified in a prior region in this trajectory
-						if (trajectoryList[tNum_position].trajRegionIsHatched[rNum] == false)
+						if (trajectoryList[tNum].trajRegionIsHatched[rNum] == false)
 						{
 							#if printTraj
 								cout << "		This region has not yet been scanpathed... proceeding" << endl;
 							#endif
 							regionsWithinPath.clear();
 							//regionsWithinPath.push_back(rNum);
-							regionsWithinPath.push_back(trajectoryList[tNum_position].trajRegions[rNum]);  //push back the region# in trajectoryList[tNum_position].trajRegions[rNum]
-							trajectoryList[tNum_position].trajRegionIsHatched[rNum] = true;
-							regionType = trajectoryList[tNum_position].trajRegionTypes[rNum];
-							regionTag = trajectoryList[tNum_position].trajRegionTags[rNum];
+							regionsWithinPath.push_back(trajectoryList[tNum].trajRegions[rNum]);  //push back the region# in trajectoryList[tNum_position].trajRegions[rNum]
+							trajectoryList[tNum].trajRegionIsHatched[rNum] = true;
+							regionType = trajectoryList[tNum].trajRegionTypes[rNum];
+							regionTag = trajectoryList[tNum].trajRegionTags[rNum];
 							// determine the regionProfile which corresponds to regionTag
 							temp3 = find(tagList.begin(), tagList.end(), regionTag);
 							rProfileNum = distance(tagList.begin(), temp3);
 							rProfile = &(configData.regionProfileList[rProfileNum]); // Create shortcut to the indicated region profile
 							#if printTraj							
-								cout << "		Creating scanpath for trajectory " << tNum << " > region tag " << regionTag << " > type " << regionType << ", regionNum " << rNum << endl;
+								cout << "		Creating scanpath for trajectory " << trajectoryList[tNum].trajectoryNum << " > region tag " << regionTag << " > type " << regionType << ", regionNum " << rNum << endl;
 							#endif
 
 							// If this region is a hatch rather than contour, compute the hatch angle and min/max hatch boundaries based on this angle
@@ -360,17 +337,17 @@ int main(int argc, char **argv)
 								}
 							}
 
-							// 6f(ii)2. Iterate across all remaining regions to aggregate other regions with the same tag
+							// Iterate across all remaining regions to aggregate other regions with the same tag
 							for (int rNum2 = rNum+1; rNum2 < numRegions; ++rNum2)
 							{
 								#if printTraj
 									cout << "			Comparing type and tag for region number " << rNum2 << endl;
 								#endif
-								if ((regionType == trajectoryList[tNum_position].trajRegionTypes[rNum2]) &
-									(regionTag == trajectoryList[tNum_position].trajRegionTags[rNum2]))
+								if ((regionType == trajectoryList[tNum].trajRegionTypes[rNum2]) &
+									(regionTag == trajectoryList[tNum].trajRegionTags[rNum2]))
 								{
-									regionsWithinPath.push_back(trajectoryList[tNum_position].trajRegions[rNum2]);
-									trajectoryList[tNum_position].trajRegionIsHatched[rNum2] = true;
+									regionsWithinPath.push_back(trajectoryList[tNum].trajRegions[rNum2]);
+									trajectoryList[tNum].trajRegionIsHatched[rNum2] = true;
 									#if printTraj
 										cout << "				Adding region tag " << regionTag << " > type " << regionType << ", regionNum " << rNum2 << endl;
 									#endif
@@ -379,7 +356,7 @@ int main(int argc, char **argv)
 
 							// Now that we know which regions to process, send those regions to the appropriate generator
 							//
-							// 6f(ii)3. IF THIS IS A CONTOUR:
+							// IF THIS IS A CONTOUR:
 							if ((regionType == "contour") & ((*rProfile).contourStyleID != "") & ((*rProfile).numCntr > 0))
 							{	// Do contouring.
 								// Loop over the indicated number of contours, create a contour and increment the contour offset
@@ -391,13 +368,13 @@ int main(int argc, char **argv)
 									currentContourOffset = (n*(*rProfile).resCntr + (*rProfile).offCntr); // offset = n*inter-contour spacing plus offset from part
 									tempPath = contour(L, regionsWithinPath, (*rProfile), currentContourOffset, BB, configData.outputIntegerIDs);
 									if ((tempPath.vecSg).size() > 0) {
-										(trajectoryList[tNum_position].vecPath).push_back(tempPath);
+										(trajectoryList[tNum].vecPath).push_back(tempPath);
 									}
 								}
 							} // end contouring
 
 							//
-							// 6f(ii)4. IF THIS IS A HATCH:
+							// IF THIS IS A HATCH:
 							if ((regionType == "hatch") & ((*rProfile).hatchStyleID != "") & ((*rProfile).resHatch > 0))
 							{	
 								#if printTraj
@@ -425,12 +402,12 @@ int main(int argc, char **argv)
 									tempPath = hatch   (L, regionsWithinPath, (*rProfile), fullHatchOffset, hatchAngle, a_min, a_max, configData.outputIntegerIDs, BB);
 								}
 								if ((tempPath.vecSg).size() > 0) {
-									(trajectoryList[tNum_position].vecPath).push_back(tempPath);
+									(trajectoryList[tNum].vecPath).push_back(tempPath);
 								}
 							}  // end hatching
 
 							#if printTraj
-								cout << "		End if (trajectoryList[tNum_position].trajRegionIsHatched[rNum] == false)" << endl;
+								cout << "		End if (trajectoryList[tNum].trajRegionIsHatched[rNum] == false)" << endl;
 							#endif
 						} // if trajRegionIsHatched
 
@@ -447,11 +424,11 @@ int main(int argc, char **argv)
 				#if printTraj
 				cout << "Trajectory loop completed; preparing to write XML and SVG files" << endl;
 				#endif
-				// 6g. Write the XML schema to a DOM and then to a file
+				// write the XML schema to a DOM and then to a file
 				string fullXMLpath = configData.scanOutputFolder + "\\XMLdir\\" + xfn;
 				createSCANxmlFile(fullXMLpath, i, configData, trajectoryList);
 
-				// 6h. If user wants to generate SVG files and we are either on the first layer or a multiple of the SVG interval, do so
+				// if user wants to generate SVG files and we are either on the first layer or a multiple of the SVG interval, do so
 				if ( (configData.createScanSVG == 1) && ((i % configData.scanSVGinterval == 0) | (i==0)) ) {
 					//write SCAN output to SVG
 					string fullSVGpath = configData.scanOutputFolder + "\\SVGdir\\" + svfn;
@@ -468,7 +445,7 @@ int main(int argc, char **argv)
 		}  // if succeeded
 	}  // for i
 
-	// 7. All layers planned for this genScan instance are complete.  Write details to gs_sts.cfg file for createScanpaths
+	//write details to the *.cfg file for next call 
 	stfile.open("gs_sts.cfg");
 	stfile << 1 << endl;		// started
 	stfile << fLayer << endl;	// last layer completed

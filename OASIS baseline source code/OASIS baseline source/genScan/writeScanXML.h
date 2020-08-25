@@ -42,7 +42,8 @@ extern IXMLDOMDocument *pXMLDomScan;
 
 using namespace std;
 
-// If printTrajectories set to 1, a list of trajectories and regions collated from XML and the Excel input will be printed to stdout.
+// If printTrajectories set to 1, a list of trajectories and regions as they are sent to scan XML will be printed to stdout.
+// This complements printTraj, found in main_genScan, which identfies the trajectories as they are encountered in layer files
 // Normally set printTrajectories to 0
 #define printTrajectories 0
 
