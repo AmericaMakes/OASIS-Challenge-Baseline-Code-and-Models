@@ -1,5 +1,5 @@
 # OASIS-Challenge-Baseline-Code-and-Models
-This repository contains the baseline code and models for the OASIS Challenge
+This repository contains the baseline code and models for the America Makes OASIS Challenge https://www.americamakes.us/oasis/
 
 The code generates scanpaths in an open-source XML format which can be used for laser fusion additive builds.  Full documentation on the the XML scan schema and the baseline code (its intent, capabilities, limitations and usage) is located within this repository at 'OASIS baseline source code/Documentation/'
 
