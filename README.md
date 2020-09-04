@@ -13,7 +13,7 @@ What to do...
 
 1.) Clone or download the files in this repository.
 
-2.) Thoroughly review the "OASIS Challenge Documentation_202000821.pdf".
+2.) Thoroughly review the "OASIS Challenge Documentation.pdf".
 
 3.) Thoroughly review all the documentation contained within 'OASIS baseline source code/Documentation/'
 
